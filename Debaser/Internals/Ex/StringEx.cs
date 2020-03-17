@@ -3,11 +3,11 @@ using System.Linq;
 
 namespace Debaser.Internals.Ex
 {
-    static class StringEx
-    {
-        public static IEnumerable<string> Indented(this IEnumerable<string> lines, int indentation)
-        {
-            return lines.Select(str => string.Concat(new string(' ', indentation), str));
-        }    
-    }
+	internal static class StringEx
+	{
+		public static IEnumerable<string> Indented(this IEnumerable<string> lines, int indentation)
+		{
+			return lines.Select(str => string.Concat(new string(' ', indentation), str));
+		}
+	}
 }
