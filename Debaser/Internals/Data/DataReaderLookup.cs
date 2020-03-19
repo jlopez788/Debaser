@@ -31,7 +31,7 @@ namespace Debaser.Internals.Data
 			}
 			catch (Exception exception)
 			{
-				throw new ApplicationException($"Could not get value {name}", exception);
+				throw new InvalidOperationException($"Could not get value {name}", exception);
 			}
 		}
 
@@ -43,7 +43,7 @@ namespace Debaser.Internals.Data
 			}
 			catch (Exception exception)
 			{
-				throw new ApplicationException($"Could not get property named {name} - have these properties: {string.Join(", ", _properties.Select(p => p.Key))}", exception);
+				throw new InvalidOperationException($"Could not get property named {name} - have these properties: {string.Join(", ", _properties.Select(p => p.Key))}", exception);
 			}
 		}
 	}

@@ -269,7 +269,7 @@ FROM [{_schema}].[{_tableName}]
 				if (!wrapException)
 					throw;
 
-				throw new ApplicationException($@"Could not execute SQL:
+				throw new InvalidOperationException($@"Could not execute SQL:
 
 {sql}
 ", exception);

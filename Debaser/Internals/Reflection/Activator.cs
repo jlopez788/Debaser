@@ -47,7 +47,7 @@ namespace Debaser.Internals.Reflection
 					}
 					catch (Exception exception)
 					{
-						throw new ApplicationException($"Could not set value of property {propertyName} to {value}", exception);
+						throw new InvalidOperationException($"Could not set value of property {propertyName} to {value}", exception);
 					}
 				}
 
@@ -83,7 +83,7 @@ namespace Debaser.Internals.Reflection
 				}
 				catch (Exception exception)
 				{
-					throw new ApplicationException($"Could not create instance of {type} with ctor arguments {string.Join(", ", parameterValues)}", exception);
+					throw new InvalidOperationException($"Could not create instance of {type} with ctor arguments {string.Join(", ", parameterValues)}", exception);
 				}
 			};
 		}

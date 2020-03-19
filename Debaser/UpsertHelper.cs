@@ -179,7 +179,7 @@ namespace Debaser
 						}
 						catch (Exception exception)
 						{
-							throw new ApplicationException($"Could not execute SQL {querySql}", exception);
+							throw new InvalidOperationException($"Could not execute SQL {querySql}", exception);
 						}
 					}
 
@@ -242,7 +242,7 @@ namespace Debaser
 						}
 						catch (Exception exception)
 						{
-							throw new ApplicationException($"Could not execute SQL {querySql}", exception);
+							throw new InvalidOperationException($"Could not execute SQL {querySql}", exception);
 						}
 					}
 				}
@@ -279,7 +279,7 @@ namespace Debaser
 					}
 					catch (Exception exception)
 					{
-						throw new ApplicationException($"Could not write property {property} of row {row}", exception);
+						throw new InvalidOperationException($"Could not write property {property} of row {row}", exception);
 					}
 				}
 

@@ -12,6 +12,9 @@ namespace Debaser.Mapping
 	/// </summary>
 	public class AutoMapper
 	{
+		private static Lazy<AutoMapper> _Default = new Lazy<AutoMapper>(() => new AutoMapper());
+		public static AutoMapper Default => _Default.Value;
+
 		/// <summary>
 		/// Gets an automatically generated map from the given <paramref name="type"/>
 		/// </summary>
@@ -127,7 +130,7 @@ namespace Debaser.Mapping
 			}
 			catch (Exception exception)
 			{
-				throw new ApplicationException($"Could not create Debaser mapper {type}", exception);
+				throw new InvalidOperationException($"Could not create Debaser mapper {type}", exception);
 			}
 		}
 	}
