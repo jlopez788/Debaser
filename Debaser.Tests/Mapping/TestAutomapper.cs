@@ -1,9 +1,9 @@
-﻿using Debaser.Attributes;
-using Debaser.Mapping;
-using NUnit.Framework;
-using System;
+﻿using System;
+using System.ComponentModel.DataAnnotations;
 using System.Data;
 using System.Linq;
+using Debaser.Mapping;
+using NUnit.Framework;
 
 namespace Debaser.Tests.Mapping
 {
@@ -59,10 +59,10 @@ namespace Debaser.Tests.Mapping
 
 		private class PocoWithExplicitKey
 		{
-			[DebaserKey]
+			[Key]
 			public int KeyA { get; set; }
 
-			[DebaserKey]
+			[Key]
 			public int KeyB { get; set; }
 
 			public decimal Decimal { get; set; }

@@ -1,15 +1,15 @@
-﻿using Debaser.Internals.Data;
-using Debaser.Internals.Exceptions;
-using Debaser.Internals.Query;
-using Debaser.Internals.Schema;
-using Debaser.Mapping;
-using Microsoft.SqlServer.Server;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Threading.Tasks;
+using Debaser.Internals.Data;
+using Debaser.Internals.Exceptions;
+using Debaser.Internals.Query;
+using Debaser.Internals.Schema;
+using Debaser.Mapping;
+using Microsoft.SqlServer.Server;
 using Activator = Debaser.Internals.Reflection.Activator;
 
 namespace Debaser
@@ -20,16 +20,16 @@ namespace Debaser
 	public class UpsertHelper<T>
 	{
 		private readonly Activator _activator;
-		private readonly SchemaManager _schemaManager;
-		private readonly string _connectionString;
 		private readonly ClassMap _classMap;
+		private readonly string _connectionString;
+		private readonly SchemaManager _schemaManager;
 		private readonly Settings _settings;
 
 		/// <summary>
 		/// Creates the upsert helper
 		/// </summary>
 		public UpsertHelper(string connectionString, string tableName = null, string schema = "dbo", Settings settings = null)
-			: this(connectionString, new AutoMapper().GetMap(typeof(T)), tableName, schema, settings)
+			: this(connectionString, AutoMapper.Default.GetMap<T>(), tableName, schema, settings)
 		{
 		}
 
@@ -52,15 +52,6 @@ namespace Debaser
 		}
 
 		/// <summary>
-		/// Immediately executes DROP statements for the things you select by setting <paramref name="dropProcedure"/>,
-		/// <paramref name="dropType"/>, and/or <paramref name="dropTable"/> to <code>true</code>.
-		/// </summary>
-		public void DropSchema(bool dropProcedure = false, bool dropType = false, bool dropTable = false)
-		{
-			_schemaManager.DropSchema(dropProcedure, dropType, dropTable);
-		}
-
-		/// <summary>
 		/// Ensures that the necessary schema is created (i.e. table, custom data type, and stored procedure).
 		/// Does NOT detect changes, just skips creation if it finds objects with the known names in the database.
 		/// This means that you need to handle migrations yourself
@@ -68,74 +59,6 @@ namespace Debaser
 		public void CreateSchema(bool createProcedure = true, bool createType = true, bool createTable = true)
 		{
 			_schemaManager.CreateSchema(createProcedure, createType, createTable);
-		}
-
-		/// <summary>
-		/// Upserts the given sequence of <typeparamref name="T"/> instances
-		/// </summary>
-		public async Task Upsert(IEnumerable<T> rows)
-		{
-			if (rows == null)
-				throw new ArgumentNullException(nameof(rows));
-			using (var connection = new SqlConnection(_connectionString))
-			{
-				await connection.OpenAsync();
-				using (var transaction = connection.BeginTransaction(_settings.TransactionIsolationLevel))
-				{
-					using (var command = connection.CreateCommand())
-					{
-						command.Transaction = transaction;
-						command.CommandTimeout = _settings.CommandTimeoutSeconds;
-						command.CommandType = CommandType.StoredProcedure;
-						command.CommandText = _schemaManager.SprocName;
-
-						var parameter = command.Parameters.AddWithValue("data", GetData(rows));
-						parameter.SqlDbType = SqlDbType.Structured;
-						parameter.TypeName = _schemaManager.DataTypeName;
-
-						try
-						{
-							await command.ExecuteNonQueryAsync();
-						}
-						catch (EmptySequenceException) { }
-					}
-
-					transaction.Commit();
-				}
-			}
-		}
-
-		/// <summary>
-		/// Loads all rows from the database (in a streaming fashion, allows you to traverse all
-		/// objects without worrying about memory usage)
-		/// </summary>
-		public IEnumerable<T> LoadAll()
-		{
-			using (var connection = new SqlConnection(_connectionString))
-			{
-				connection.Open();
-				using (var transaction = connection.BeginTransaction(_settings.TransactionIsolationLevel))
-				{
-					using (var command = connection.CreateCommand())
-					{
-						command.Transaction = transaction;
-						command.CommandTimeout = _settings.CommandTimeoutSeconds;
-						command.CommandType = CommandType.Text;
-						command.CommandText = _schemaManager.GetQuery();
-
-						using (var reader = command.ExecuteReader())
-						{
-							var classMapProperties = _classMap.Properties.ToDictionary(p => p.PropertyName);
-							var lookup = new DataReaderLookup(reader, classMapProperties);
-
-							while (reader.Read())
-							{
-								yield return (T)_activator.CreateInstance(lookup);
-							}
-						}
-					}
-				}
-			}
 		}
 
 		/// <summary>
@@ -184,6 +107,48 @@ namespace Debaser
 					}
 
 					transaction.Commit();
+				}
+			}
+		}
+
+		/// <summary>
+		/// Immediately executes DROP statements for the things you select by setting <paramref name="dropProcedure"/>,
+		/// <paramref name="dropType"/>, and/or <paramref name="dropTable"/> to <code>true</code>.
+		/// </summary>
+		public void DropSchema(bool dropProcedure = false, bool dropType = false, bool dropTable = false)
+		{
+			_schemaManager.DropSchema(dropProcedure, dropType, dropTable);
+		}
+
+		/// <summary>
+		/// Loads all rows from the database (in a streaming fashion, allows you to traverse all
+		/// objects without worrying about memory usage)
+		/// </summary>
+		public IEnumerable<T> LoadAll()
+		{
+			using (var connection = new SqlConnection(_connectionString))
+			{
+				connection.Open();
+				using (var transaction = connection.BeginTransaction(_settings.TransactionIsolationLevel))
+				{
+					using (var command = connection.CreateCommand())
+					{
+						command.Transaction = transaction;
+						command.CommandTimeout = _settings.CommandTimeoutSeconds;
+						command.CommandType = CommandType.Text;
+						command.CommandText = _schemaManager.GetQuery();
+
+						using (var reader = command.ExecuteReader())
+						{
+							var classMapProperties = _classMap.Properties.ToDictionary(p => p.PropertyName);
+							var lookup = new DataReaderLookup(reader, classMapProperties);
+
+							while (reader.Read())
+							{
+								yield return (T)_activator.CreateInstance(lookup);
+							}
+						}
+					}
 				}
 			}
 		}
@@ -251,16 +216,41 @@ namespace Debaser
 			return results;
 		}
 
-		private List<Parameter> GetParameters(object args)
+		/// <summary>
+		/// Upserts the given sequence of <typeparamref name="T"/> instances
+		/// </summary>
+		public async Task Upsert(IEnumerable<T> rows)
 		{
-			if (args == null)
-				return new List<Parameter>();
+			if (rows == null)
+				throw new ArgumentNullException(nameof(rows));
+			using (var connection = new SqlConnection(_connectionString))
+			{
+				await connection.OpenAsync();
+				using (var transaction = connection.BeginTransaction(_settings.TransactionIsolationLevel))
+				{
+					using (var command = connection.CreateCommand())
+					{
+						command.Transaction = transaction;
+						command.CommandTimeout = _settings.CommandTimeoutSeconds;
+						command.CommandType = CommandType.StoredProcedure;
+						command.CommandText = _schemaManager.SprocName;
 
-			var properties = args.GetType().GetProperties();
+						var parameter = command.Parameters.AddWithValue("data", GetData(rows));
+						parameter.SqlDbType = SqlDbType.Structured;
+						parameter.TypeName = _schemaManager.DataTypeName;
 
-			return properties
-				.Select(p => new Parameter(p.Name, p.GetValue(args)))
-				.ToList();
+						try
+						{
+							await command.ExecuteNonQueryAsync();
+						}
+						catch (EmptySequenceException)
+						{
+						}
+					}
+
+					transaction.Commit();
+				}
+			}
 		}
 
 		private IEnumerable<SqlDataRecord> GetData(IEnumerable<T> rows)
@@ -293,6 +283,18 @@ namespace Debaser
 			{
 				throw new EmptySequenceException();
 			}
+		}
+
+		private List<Parameter> GetParameters(object args)
+		{
+			if (args == null)
+				return new List<Parameter>();
+
+			var properties = args.GetType().GetProperties();
+
+			return properties
+				.Select(p => new Parameter(p.Name, p.GetValue(args)))
+				.ToList();
 		}
 
 		private SchemaManager GetSchemaCreator(string schema, string tableName, string dataTypeName, string procedureName)

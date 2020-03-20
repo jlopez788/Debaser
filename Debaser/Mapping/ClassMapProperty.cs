@@ -1,7 +1,7 @@
-﻿using FastMember;
-using Microsoft.SqlServer.Server;
-using System;
+﻿using System;
 using System.Reflection;
+using FastMember;
+using Microsoft.SqlServer.Server;
 
 namespace Debaser.Mapping
 {

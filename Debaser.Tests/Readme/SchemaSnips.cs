@@ -1,4 +1,5 @@
-﻿using Debaser.Attributes;
+﻿using System.ComponentModel.DataAnnotations;
+using Debaser.Attributes;
 using NUnit.Framework;
 
 namespace Debaser.Tests.Readme
@@ -22,7 +23,7 @@ namespace Debaser.Tests.Readme
 				FullName = fullName;
 			}
 
-			[DebaserKey]
+			[Key]
 			public string Ssn { get; }
 
 			public string FullName { get; }
@@ -45,10 +46,10 @@ namespace Debaser.Tests.Readme
 				FullName = fullName;
 			}
 
-			[DebaserKey]
+			[Key]
 			public string TenantId { get; }
 
-			[DebaserKey]
+			[Key]
 			public string Ssn { get; }
 
 			public string FullName { get; }

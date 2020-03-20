@@ -1,9 +1,9 @@
-﻿using Debaser.Internals.Values;
-using FastMember;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using Debaser.Internals.Values;
+using FastMember;
 
 namespace Debaser.Internals.Reflection
 {
@@ -14,7 +14,6 @@ namespace Debaser.Internals.Reflection
 		public Activator(Type type, IEnumerable<string> includedProperties)
 		{
 			var propertyNames = new HashSet<string>(includedProperties);
-
 			_creationFunction = HasDefaultConstructor(type)
 				? GetPropertyCreator(type, propertyNames)
 				: GetConstructorCreator(type, propertyNames);
@@ -35,8 +34,7 @@ namespace Debaser.Internals.Reflection
 			var accessor = TypeAccessor.Create(type);
 
 			return lookup => {
-				var instance = System.Activator.CreateInstance(type);
-
+				var instance = accessor.CreateNew();
 				foreach (var property in properties)
 				{
 					var propertyName = property.Name;
@@ -78,7 +76,6 @@ namespace Debaser.Internals.Reflection
 				try
 				{
 					var instance = System.Activator.CreateInstance(type, parameterValues);
-
 					return instance;
 				}
 				catch (Exception exception)

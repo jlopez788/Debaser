@@ -1,5 +1,6 @@
 ﻿using Debaser.Attributes;
 using NUnit.Framework;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -61,7 +62,7 @@ namespace Debaser.Tests.Query
 				Data = data;
 			}
 
-			[DebaserKey]
+			[Key]
 			public string Id { get; }
 
 			public string Data { get; }

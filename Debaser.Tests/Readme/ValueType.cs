@@ -1,6 +1,7 @@
 ﻿using Debaser.Attributes;
 using NUnit.Framework;
 using System;
+using System.ComponentModel.DataAnnotations;
 using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
@@ -60,14 +61,14 @@ namespace Debaser.Tests.Readme
 			Rate = rate;
 		}
 
-		[DebaserKey]
+		[Key]
 		[DebaserMapper(typeof(DateMapper))]
 		public Date Date { get; }
 
-		[DebaserKey]
+		[Key]
 		public string Base { get; }
 
-		[DebaserKey]
+		[Key]
 		public string Quote { get; }
 
 		public decimal Rate { get; }

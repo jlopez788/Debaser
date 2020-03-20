@@ -1,22 +1,17 @@
-﻿using NUnit.Framework;
-using System;
+﻿using System;
+using NUnit.Framework;
 
-namespace Debaser.Tests
-{
-	public abstract class FixtureBase
-	{
-		private const int DatabaseAlreadyExists = 1801;
+namespace Debaser.Tests {
 
-		protected static string ConnectionString => Environment.GetEnvironmentVariable("testdb") ?? "server=.; database=debaser_test; trusted_connection=true";
+	public abstract class FixtureBase {
+		protected static string ConnectionString => Environment.GetEnvironmentVariable("testdb") ?? "server=(localdb)\\MSSQLLocalDB; database=debaser; trusted_connection=true";
 
 		[SetUp]
-		public void InnerSetUp()
-		{
+		public void InnerSetUp() {
 			SetUp();
 		}
 
-		protected virtual void SetUp()
-		{
+		protected virtual void SetUp() {
 		}
 	}
 }

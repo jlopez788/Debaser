@@ -1,5 +1,6 @@
 ﻿using Debaser.Attributes;
 using NUnit.Framework;
+using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 
 namespace Debaser.Tests.Bugs
@@ -27,7 +28,7 @@ namespace Debaser.Tests.Bugs
 
 		public class BricData
 		{
-			[DebaserKey]
+			[Key]
 			public string CellId { get; set; }
 
 			public double GnsHstIndk2010 { get; set; }
