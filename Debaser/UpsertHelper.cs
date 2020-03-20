@@ -66,49 +66,31 @@ namespace Debaser
 		/// <code>[someColumn] = @someValue</code> where the accompanying <paramref name="args"/> would be something like
 		/// <code>new { someValue = "hej" }</code>
 		/// </summary>
-		public async Task DeleteWhere(string criteria, object args = null)
+		public Task DeleteWhere(string criteria, object args = null, SqlTransaction transaction = null)
 		{
 			if (criteria == null)
 				throw new ArgumentNullException(nameof(criteria));
 
-			using (var connection = new SqlConnection(_connectionString))
-			{
-				await connection.OpenAsync();
+			return Process(transaction, async (connection, txn) => {
+				using var command = connection.CreateCommand();
+				var querySql = _schemaManager.GetDeleteCommand(criteria);
+				var parameters = GetParameters(args);
 
-				using (var transaction = connection.BeginTransaction(_settings.TransactionIsolationLevel))
+				command.Transaction = txn;
+				command.CommandTimeout = _settings.CommandTimeoutSeconds;
+				command.CommandType = CommandType.Text;
+				command.CommandText = querySql;
+				parameters.ForEach(parameter => parameter.AddTo(command));
+
+				try
 				{
-					using (var command = connection.CreateCommand())
-					{
-						command.Transaction = transaction;
-						command.CommandTimeout = _settings.CommandTimeoutSeconds;
-						command.CommandType = CommandType.Text;
-
-						var querySql = _schemaManager.GetDeleteCommand(criteria);
-						var parameters = GetParameters(args);
-
-						if (parameters.Any())
-						{
-							foreach (var parameter in parameters)
-							{
-								parameter.AddTo(command);
-							}
-						}
-
-						command.CommandText = querySql;
-
-						try
-						{
-							await command.ExecuteNonQueryAsync();
-						}
-						catch (Exception exception)
-						{
-							throw new InvalidOperationException($"Could not execute SQL {querySql}", exception);
-						}
-					}
-
-					transaction.Commit();
+					return await command.ExecuteNonQueryAsync();
 				}
-			}
+				catch (Exception exception)
+				{
+					throw new InvalidOperationException($"Could not execute SQL {querySql}", exception);
+				}
+			});
 		}
 
 		/// <summary>
@@ -158,99 +140,63 @@ namespace Debaser
 		/// <code>[someColumn] = @someValue</code> where the accompanying <paramref name="args"/> would be something like
 		/// <code>new { someValue = "hej" }</code>
 		/// </summary>
-		public async Task<List<T>> LoadWhere(string criteria, object args = null)
+		public async Task<List<T>> LoadAsync(string criteria = null, object args = null)
 		{
-			if (criteria == null)
-				throw new ArgumentNullException(nameof(criteria));
+			return await Process(null, async (connection, txn) => {
+				var results = new List<T>();
+				using var command = connection.CreateCommand();
+				command.Transaction = txn;
+				command.CommandTimeout = _settings.CommandTimeoutSeconds;
+				command.CommandType = CommandType.Text;
 
-			var results = new List<T>();
+				var querySql = _schemaManager.GetQuery(criteria);
+				var parameters = GetParameters(args);
+				parameters.ForEach(parameter => parameter.AddTo(command));
+				command.CommandText = querySql;
 
-			using (var connection = new SqlConnection(_connectionString))
-			{
-				await connection.OpenAsync();
-
-				using (var transaction = connection.BeginTransaction(_settings.TransactionIsolationLevel))
+				try
 				{
-					using (var command = connection.CreateCommand())
+					using var reader = await command.ExecuteReaderAsync();
+					var classMapProperties = _classMap.Properties.ToDictionary(p => p.PropertyName);
+					var lookup = new DataReaderLookup(reader, classMapProperties);
+
+					while (reader.Read())
 					{
-						command.Transaction = transaction;
-						command.CommandTimeout = _settings.CommandTimeoutSeconds;
-						command.CommandType = CommandType.Text;
-
-						var querySql = _schemaManager.GetQuery(criteria);
-						var parameters = GetParameters(args);
-
-						if (parameters.Any())
-						{
-							foreach (var parameter in parameters)
-							{
-								parameter.AddTo(command);
-							}
-						}
-
-						command.CommandText = querySql;
-
-						try
-						{
-							using (var reader = await command.ExecuteReaderAsync())
-							{
-								var classMapProperties = _classMap.Properties.ToDictionary(p => p.PropertyName);
-								var lookup = new DataReaderLookup(reader, classMapProperties);
-
-								while (reader.Read())
-								{
-									var instance = (T)_activator.CreateInstance(lookup);
-
-									results.Add(instance);
-								}
-							}
-						}
-						catch (Exception exception)
-						{
-							throw new InvalidOperationException($"Could not execute SQL {querySql}", exception);
-						}
+						var instance = (T)_activator.CreateInstance(lookup);
+						results.Add(instance);
 					}
 				}
-			}
-
-			return results;
+				catch (Exception exception)
+				{
+					throw new InvalidOperationException($"Could not execute SQL {querySql}", exception);
+				}
+				return results;
+			});
 		}
 
 		/// <summary>
 		/// Upserts the given sequence of <typeparamref name="T"/> instances
 		/// </summary>
-		public async Task Upsert(IEnumerable<T> rows)
+		/// <param name="models">Models to upsert into database</param>
+		/// <param name="transaction">Transaction</param>
+		public Task Modify(IEnumerable<T> models, SqlTransaction transaction = null)
 		{
-			if (rows == null)
-				throw new ArgumentNullException(nameof(rows));
-			using (var connection = new SqlConnection(_connectionString))
-			{
-				await connection.OpenAsync();
-				using (var transaction = connection.BeginTransaction(_settings.TransactionIsolationLevel))
-				{
-					using (var command = connection.CreateCommand())
-					{
-						command.Transaction = transaction;
-						command.CommandTimeout = _settings.CommandTimeoutSeconds;
-						command.CommandType = CommandType.StoredProcedure;
-						command.CommandText = _schemaManager.SprocName;
+			if (models == null)
+				throw new ArgumentNullException(nameof(models));
 
-						var parameter = command.Parameters.AddWithValue("data", GetData(rows));
-						parameter.SqlDbType = SqlDbType.Structured;
-						parameter.TypeName = _schemaManager.DataTypeName;
+			return Process(transaction, async (connection, txn) => {
+				using var command = connection.CreateCommand();
+				command.Transaction = txn;
+				command.CommandTimeout = _settings.CommandTimeoutSeconds;
+				command.CommandType = CommandType.StoredProcedure;
+				command.CommandText = _schemaManager.SprocName;
 
-						try
-						{
-							await command.ExecuteNonQueryAsync();
-						}
-						catch (EmptySequenceException)
-						{
-						}
-					}
+				var parameter = command.Parameters.AddWithValue("data", GetData(models));
+				parameter.SqlDbType = SqlDbType.Structured;
+				parameter.TypeName = _schemaManager.DataTypeName;
 
-					transaction.Commit();
-				}
-			}
+				return await command.ExecuteNonQueryAsync();
+			});
 		}
 
 		private IEnumerable<SqlDataRecord> GetData(IEnumerable<T> rows)
@@ -304,6 +250,47 @@ namespace Debaser
 			var extraCriteria = _classMap.GetExtraCriteria();
 
 			return new SchemaManager(_connectionString, tableName, dataTypeName, procedureName, keyProperties, properties, schema, extraCriteria);
+		}
+
+		private async Task<TResult> Process<TResult>(SqlTransaction transaction, Func<SqlConnection, SqlTransaction, Task<TResult>> process)
+		{
+			var result = default(TResult);
+			var exists = transaction?.Connection != null;
+			var connection = transaction?.Connection ?? new SqlConnection(_connectionString);
+			if (connection.State != ConnectionState.Open)
+				await connection.OpenAsync();
+
+			try
+			{
+				transaction ??= connection.BeginTransaction(_settings.TransactionIsolationLevel);
+				result = await process(connection, transaction);
+				if (!exists)
+					transaction.Commit();
+			}
+			catch
+			{
+				if (!exists)
+					transaction.Rollback();
+				else
+					throw;
+			}
+			finally
+			{
+				if (!exists)
+				{
+					try
+					{
+						transaction.Dispose();
+						await connection.CloseAsync();
+						connection.Dispose();
+					}
+					catch
+					{
+						// do nothing
+					}
+				}
+			}
+			return result;
 		}
 	}
 }

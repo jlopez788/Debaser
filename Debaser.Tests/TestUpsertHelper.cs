@@ -20,7 +20,7 @@ namespace Debaser.Tests
 		[Test]
 		public async Task CanRoundtripSingleRow()
 		{
-			await _upsertHelper.Upsert(new[]
+			await _upsertHelper.Modify(new[]
 			{
 				new SimpleRow {Id = 1, Text = "this is the first row"},
 				new SimpleRow {Id = 2, Text = "this is the second row"},

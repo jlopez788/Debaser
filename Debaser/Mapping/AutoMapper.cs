@@ -15,7 +15,7 @@ namespace Debaser.Mapping
 	public class AutoMapper
 	{
 		private static readonly Lazy<AutoMapper> _Default = new Lazy<AutoMapper>(() => new AutoMapper());
-		private ConcurrentDictionary<Type, ClassMap> Data;
+		private readonly ConcurrentDictionary<Type, ClassMap> Data;
 		public static AutoMapper Default => _Default.Value;
 
 		public AutoMapper() => Data = new ConcurrentDictionary<Type, ClassMap>();
@@ -38,7 +38,7 @@ namespace Debaser.Mapping
 
 				if (!properties.Any(p => p.IsKey))
 				{
-					throw new ArgumentException(@"At least one key property needs to be specified. Either create a property named 'Id' or apply [DebaserKey] on one or more properties");
+					throw new ArgumentException(@"At least one key property needs to be specified. Either create a property named 'Id' or apply [hing] on one or more properties");
 				}
 
 				map = new ClassMap(type, properties);
@@ -109,9 +109,6 @@ namespace Debaser.Mapping
 
 		private static IEnumerable<ClassMapProperty> GetProperties(Type type)
 		{
-			if (type == null)
-				throw new ArgumentNullException(nameof(type));
-
 			Func<object, object> DefaultFromDatabase() => obj => obj;
 			Func<object, object> DefaultToDatabase() => obj => obj;
 

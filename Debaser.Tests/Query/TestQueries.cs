@@ -1,7 +1,6 @@
-﻿using Debaser.Attributes;
-using NUnit.Framework;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
+using NUnit.Framework;
 
 namespace Debaser.Tests.Query
 {
@@ -30,10 +29,10 @@ namespace Debaser.Tests.Query
 				new RowWithData(5, "number5"),
 			};
 
-			await _upsertHelper.Upsert(rows);
+			await _upsertHelper.Modify(rows);
 
-			var results1 = await _upsertHelper.LoadWhere("[Data] = 'number4'");
-			var results2 = await _upsertHelper.LoadWhere("[Data] = @data", new { data = "number4" });
+			var results1 = await _upsertHelper.LoadAsync("[Data] = 'number4'");
+			var results2 = await _upsertHelper.LoadAsync("[Data] = @data", new { data = "number4" });
 
 			Assert.That(results1.Count, Is.EqualTo(1));
 			Assert.That(results2.Count, Is.EqualTo(1));

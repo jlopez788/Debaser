@@ -1,31 +1,12 @@
-﻿using Debaser.Attributes;
-using NUnit.Framework;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
+using NUnit.Framework;
 
 namespace Debaser.Tests.Bugs
 {
 	[TestFixture]
 	public class TestBricData : FixtureBase
 	{
-		private UpsertHelper<BricData> _upserter;
-
-		protected override void SetUp()
-		{
-			_upserter = new UpsertHelper<BricData>(ConnectionString);
-			_upserter.DropSchema(dropTable: true, dropProcedure: true, dropType: true);
-			_upserter.CreateSchema();
-		}
-
-		[Test]
-		public async Task CanWriteDoublesAndFloats()
-		{
-			await _upserter.Upsert(new[]
-			{
-				new BricData {CellId = "hg03jg93", GnsHstIndk2010 = 24, GnsPersIndkHigh2010 = 3435}
-			});
-		}
-
 		public class BricData
 		{
 			[Key]
@@ -33,6 +14,24 @@ namespace Debaser.Tests.Bugs
 
 			public double GnsHstIndk2010 { get; set; }
 			public float GnsPersIndkHigh2010 { get; set; }
+		}
+
+		private UpsertHelper<BricData> _upserter;
+
+		[Test]
+		public async Task CanWriteDoublesAndFloats()
+		{
+			await _upserter.Modify(new[]
+			{
+				new BricData {CellId = "hg03jg93", GnsHstIndk2010 = 24, GnsPersIndkHigh2010 = 3435}
+			});
+		}
+
+		protected override void SetUp()
+		{
+			_upserter = new UpsertHelper<BricData>(ConnectionString);
+			_upserter.DropSchema(dropTable: true, dropProcedure: true, dropType: true);
+			_upserter.CreateSchema();
 		}
 	}
 }

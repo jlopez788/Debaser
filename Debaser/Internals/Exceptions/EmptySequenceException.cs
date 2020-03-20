@@ -4,7 +4,7 @@ using System.Runtime.Serialization;
 namespace Debaser.Internals.Exceptions
 {
 	[Serializable]
-	internal class EmptySequenceException : Exception
+	public class EmptySequenceException : Exception
 	{
 		public EmptySequenceException()
 		{

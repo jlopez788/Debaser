@@ -41,17 +41,14 @@ namespace Debaser.Internals.Query
 			else
 			{
 				var sqlDbType = GetSqlDbType();
-
 				command.Parameters.Add(Name, sqlDbType).Value = Value;
 			}
 		}
 
 		private SqlDbType GetSqlDbType()
 		{
-			SqlDbType sqlDbType;
 			var type = Value.GetType();
-
-			if (KnownTypes.TryGetValue(type, out sqlDbType))
+			if (KnownTypes.TryGetValue(type, out SqlDbType sqlDbType))
 				return sqlDbType;
 
 			throw new ArgumentException($"Does not know which SqlDbType to use for {type}");

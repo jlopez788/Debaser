@@ -10,12 +10,27 @@ namespace Debaser.Tests.Mapping
 	[TestFixture]
 	public class TestAutoMapper : FixtureBase
 	{
-		private AutoMapper _mapper;
-
-		protected override void SetUp()
+		public class Poco
 		{
-			_mapper = new AutoMapper();
+			public int Id { get; set; }
+			public decimal Decimal { get; set; }
+			public DateTime DateTime { get; set; }
 		}
+
+		public class PocoWithExplicitKey
+		{
+			public DateTime DateTime { get; set; }
+
+			public decimal Decimal { get; set; }
+
+			[Key]
+			public int KeyA { get; set; }
+
+			[Key]
+			public int KeyB { get; set; }
+		}
+
+		private AutoMapper _mapper;
 
 		[Test]
 		public void CanGetMapFromPoco()
@@ -38,15 +53,6 @@ namespace Debaser.Tests.Mapping
 			}));
 		}
 
-		private class Poco
-		{
-			public int Id { get; set; }
-
-			public decimal Decimal { get; set; }
-
-			public DateTime DateTime { get; set; }
-		}
-
 		[Test]
 		public void CanSpecifyKeyWithAttribute()
 		{
@@ -57,17 +63,9 @@ namespace Debaser.Tests.Mapping
 			Assert.That(keys.Select(k => k.PropertyName), Is.EqualTo(new[] { "KeyA", "KeyB" }));
 		}
 
-		private class PocoWithExplicitKey
+		protected override void SetUp()
 		{
-			[Key]
-			public int KeyA { get; set; }
-
-			[Key]
-			public int KeyB { get; set; }
-
-			public decimal Decimal { get; set; }
-
-			public DateTime DateTime { get; set; }
+			_mapper = new AutoMapper();
 		}
 	}
 }

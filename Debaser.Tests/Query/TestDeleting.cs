@@ -1,8 +1,6 @@
-﻿using Debaser.Attributes;
-using NUnit.Framework;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
+﻿using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
+using NUnit.Framework;
 
 namespace Debaser.Tests.Query
 {
@@ -35,17 +33,17 @@ namespace Debaser.Tests.Query
 				new RowWithData("9", "farvel"),
 			};
 
-			await _upsertHelper.Upsert(rows);
+			await _upsertHelper.Modify(rows);
 
-			var allRows = _upsertHelper.LoadAll().ToList();
+			var allRows = await _upsertHelper.LoadAsync();
 
 			await _upsertHelper.DeleteWhere("[data] = @data", new { data = "hej" });
 
-			var rowsAfterDeletingHej = _upsertHelper.LoadAll().ToList();
+			var rowsAfterDeletingHej = await _upsertHelper.LoadAsync();
 
 			await _upsertHelper.DeleteWhere("[data] = @data", new { data = "farvel" });
 
-			var rowsAfterDeletingFarvel = _upsertHelper.LoadAll().ToList();
+			var rowsAfterDeletingFarvel = await _upsertHelper.LoadAsync();
 
 			Assert.That(allRows.Count, Is.EqualTo(9));
 

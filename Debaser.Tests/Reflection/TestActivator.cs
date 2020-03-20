@@ -1,7 +1,7 @@
-﻿using Debaser.Internals.Values;
-using NUnit.Framework;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using Debaser.Internals.Values;
+using NUnit.Framework;
 using Activator = Debaser.Internals.Reflection.Activator;
 
 namespace Debaser.Tests.Reflection
@@ -9,90 +9,23 @@ namespace Debaser.Tests.Reflection
 	[TestFixture]
 	public class TestActivator : FixtureBase
 	{
-		[Test]
-		public void SkipsPropertyWhenNotIncluded_Constructor()
+		public class SomeClassWithProperties
 		{
-			var activator = new Activator(typeof(SomeClassWithConstructor), new[] { nameof(SomeClassWithConstructor.Number) });
-
-			var values = new TestValueLookup(new Dictionary<string, object>
-			{
-				{nameof(SomeClassWithConstructor.Number), 123 },
-				{nameof(SomeClassWithConstructor.Text), "HELLO" },
-			});
-
-			var instance = (SomeClassWithConstructor)activator.CreateInstance(values);
-
-			Assert.That(instance.Number, Is.EqualTo(123));
-			Assert.That(instance.Text, Is.EqualTo(null));
+			public decimal Number { get; set; }
+			public string Text { get; set; }
 		}
 
-		[Test]
-		public void CanCreateClassFromConstructor()
+		public class SomeClassWithConstructor
 		{
-			var activator = new Activator(typeof(SomeClassWithConstructor), new[] { nameof(SomeClassWithConstructor.Number), nameof(SomeClassWithConstructor.Text) });
+			public decimal Number { get; }
 
-			var values = new TestValueLookup(new Dictionary<string, object>
-			{
-				{nameof(SomeClassWithConstructor.Number), 123 },
-				{nameof(SomeClassWithConstructor.Text), "HELLO" },
-			});
+			public string Text { get; }
 
-			var instance = (SomeClassWithConstructor)activator.CreateInstance(values);
-
-			Assert.That(instance.Number, Is.EqualTo(123));
-			Assert.That(instance.Text, Is.EqualTo("HELLO"));
-		}
-
-		private class SomeClassWithConstructor
-		{
 			public SomeClassWithConstructor(decimal number, string text)
 			{
 				Number = number;
 				Text = text;
 			}
-
-			public decimal Number { get; }
-			public string Text { get; }
-		}
-
-		[Test]
-		public void SkipsPropertyWhenNotIncluded_Properties()
-		{
-			var activator = new Activator(typeof(SomeClassWithProperties), new[] { nameof(SomeClassWithProperties.Number) });
-
-			var values = new TestValueLookup(new Dictionary<string, object>
-			{
-				{nameof(SomeClassWithProperties.Number), 123 },
-				{nameof(SomeClassWithProperties.Text), "HELLO" },
-			});
-
-			var instance = (SomeClassWithProperties)activator.CreateInstance(values);
-
-			Assert.That(instance.Number, Is.EqualTo(123));
-			Assert.That(instance.Text, Is.EqualTo(null));
-		}
-
-		[Test]
-		public void CanCreateClassFromProperties()
-		{
-			var activator = new Activator(typeof(SomeClassWithProperties), new[] { nameof(SomeClassWithProperties.Number), nameof(SomeClassWithProperties.Text) });
-
-			var values = new TestValueLookup(new Dictionary<string, object>
-			{
-				{nameof(SomeClassWithProperties.Number), 123 },
-				{nameof(SomeClassWithProperties.Text), "HELLO" },
-			});
-
-			var instance = (SomeClassWithProperties)activator.CreateInstance(values);
-
-			Assert.That(instance.Number, Is.EqualTo(123));
-			Assert.That(instance.Text, Is.EqualTo("HELLO"));
-		}
-
-		private class SomeClassWithProperties
-		{
-			public decimal Number { get; set; }
-			public string Text { get; set; }
 		}
 
 		private class TestValueLookup : IValueLookup
@@ -117,6 +50,74 @@ namespace Debaser.Tests.Reflection
 					throw new ArgumentException($"Could not find value with key '{name}' in the values dictionary", exception);
 				}
 			}
+		}
+
+		[Test]
+		public void CanCreateClassFromConstructor()
+		{
+			var activator = new Activator(typeof(SomeClassWithConstructor), new[] { nameof(SomeClassWithConstructor.Number), nameof(SomeClassWithConstructor.Text) });
+
+			var values = new TestValueLookup(new Dictionary<string, object>
+			{
+				{nameof(SomeClassWithConstructor.Number), 123 },
+				{nameof(SomeClassWithConstructor.Text), "HELLO" },
+			});
+
+			var instance = (SomeClassWithConstructor)activator.CreateInstance(values);
+
+			Assert.That(instance.Number, Is.EqualTo(123));
+			Assert.That(instance.Text, Is.EqualTo("HELLO"));
+		}
+
+		[Test]
+		public void CanCreateClassFromProperties()
+		{
+			var activator = new Activator(typeof(SomeClassWithProperties), new[] { nameof(SomeClassWithProperties.Number), nameof(SomeClassWithProperties.Text) });
+
+			var values = new TestValueLookup(new Dictionary<string, object>
+			{
+				{nameof(SomeClassWithProperties.Number), 123 },
+				{nameof(SomeClassWithProperties.Text), "HELLO" },
+			});
+
+			var instance = (SomeClassWithProperties)activator.CreateInstance(values);
+
+			Assert.That(instance.Number, Is.EqualTo(123));
+			Assert.That(instance.Text, Is.EqualTo("HELLO"));
+		}
+
+		[Test]
+		public void SkipsPropertyWhenNotIncluded_Constructor()
+		{
+			var activator = new Activator(typeof(SomeClassWithConstructor), new[] { nameof(SomeClassWithConstructor.Number) });
+
+			var values = new TestValueLookup(new Dictionary<string, object>
+			{
+				{nameof(SomeClassWithConstructor.Number), 123 },
+				{nameof(SomeClassWithConstructor.Text), "HELLO" },
+			});
+
+			var instance = (SomeClassWithConstructor)activator.CreateInstance(values);
+
+			Assert.That(instance.Number, Is.EqualTo(123));
+			Assert.That(instance.Text, Is.EqualTo(null));
+		}
+
+		[Test]
+		public void SkipsPropertyWhenNotIncluded_Properties()
+		{
+			var activator = new Activator(typeof(SomeClassWithProperties), new[] { nameof(SomeClassWithProperties.Number) });
+
+			var values = new TestValueLookup(new Dictionary<string, object>
+			{
+				{nameof(SomeClassWithProperties.Number), 123 },
+				{nameof(SomeClassWithProperties.Text), "HELLO" },
+			});
+
+			var instance = (SomeClassWithProperties)activator.CreateInstance(values);
+
+			Assert.That(instance.Number, Is.EqualTo(123));
+			Assert.That(instance.Text, Is.EqualTo(null));
 		}
 	}
 }

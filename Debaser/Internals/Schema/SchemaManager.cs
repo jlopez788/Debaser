@@ -166,6 +166,7 @@ END
 						}
 						catch (SqlException exception) when (exception.Number == objectNotFound)
 						{
+							// do nothing
 						}
 					}
 				}
@@ -182,6 +183,7 @@ END
 						}
 						catch (SqlException exception) when (exception.Number == typeNotFound)
 						{
+							// do nothing
 						}
 					}
 				}
@@ -198,6 +200,7 @@ END
 						}
 						catch (SqlException exception) when (exception.Number == objectNotFound)
 						{
+							// do nothing
 						}
 					}
 				}

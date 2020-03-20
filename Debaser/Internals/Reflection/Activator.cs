@@ -31,8 +31,7 @@ namespace Debaser.Internals.Reflection
 				.Where(p => includedProperties.Contains(p.Name))
 				.ToArray();
 
-			var accessor = TypeAccessor.Create(type);
-
+			var accessor = TypeAccessor.Create(type); 
 			return lookup => {
 				var instance = accessor.CreateNew();
 				foreach (var property in properties)

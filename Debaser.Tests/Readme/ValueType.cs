@@ -1,10 +1,9 @@
-﻿using Debaser.Attributes;
-using NUnit.Framework;
-using System;
+﻿using System;
 using System.ComponentModel.DataAnnotations;
 using System.Data;
-using System.Linq;
 using System.Threading.Tasks;
+using Debaser.Attributes;
+using NUnit.Framework;
 
 namespace Debaser.Tests.Readme
 {
@@ -23,12 +22,13 @@ namespace Debaser.Tests.Readme
 		[Test]
 		public async Task ItWorks()
 		{
-			await _upsertHelper.Upsert(new[]
-			{
+			await _upsertHelper.Modify(new[] {
 				new CurrencyCrossRates(new Date(2017, 1, 17), "EUR", "USD", 5.5m),
 			});
 
-			var rows = _upsertHelper.LoadAll().ToList();
+			var rows = await _upsertHelper.LoadAsync();
+
+			Assert.That(rows.Count == 1, "Should be one record");
 		}
 	}
 
