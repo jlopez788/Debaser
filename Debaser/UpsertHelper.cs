@@ -3,9 +3,10 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
+using Debaser.Internals;
 using Debaser.Internals.Data;
-using Debaser.Internals.Exceptions;
 using Debaser.Internals.Query;
 using Debaser.Internals.Schema;
 using Debaser.Mapping;
@@ -106,33 +107,24 @@ namespace Debaser
 		/// Loads all rows from the database (in a streaming fashion, allows you to traverse all
 		/// objects without worrying about memory usage)
 		/// </summary>
-		public IEnumerable<T> LoadAll()
+		public List<T> LoadAll()
 		{
-			using (var connection = new SqlConnection(_connectionString))
-			{
-				connection.Open();
-				using (var transaction = connection.BeginTransaction(_settings.TransactionIsolationLevel))
-				{
-					using (var command = connection.CreateCommand())
-					{
-						command.Transaction = transaction;
-						command.CommandTimeout = _settings.CommandTimeoutSeconds;
-						command.CommandType = CommandType.Text;
-						command.CommandText = _schemaManager.GetQuery();
+			using var connection = new SqlConnection(_connectionString);
+			connection.Open();
+			using var transaction = connection.BeginTransaction(_settings.TransactionIsolationLevel);
+			using var command = connection.CreateCommand();
+			command.Transaction = transaction;
+			command.CommandTimeout = _settings.CommandTimeoutSeconds;
+			command.CommandType = CommandType.Text;
+			command.CommandText = _schemaManager.GetQuery();
 
-						using (var reader = command.ExecuteReader())
-						{
-							var classMapProperties = _classMap.Properties.ToDictionary(p => p.PropertyName);
-							var lookup = new DataReaderLookup(reader, classMapProperties);
-
-							while (reader.Read())
-							{
-								yield return (T)_activator.CreateInstance(lookup);
-							}
-						}
-					}
-				}
-			}
+			using var reader = command.ExecuteReader();
+			var classMapProperties = _classMap.Properties.ToDictionary(p => p.PropertyName);
+			var lookup = new DataReaderLookup(reader, classMapProperties);
+			var results = new List<T>();
+			while (reader.Read())
+				results.Add((T)_activator.CreateInstance(lookup));
+			return results;
 		}
 
 		/// <summary>
@@ -154,22 +146,38 @@ namespace Debaser
 				parameters.ForEach(parameter => parameter.AddTo(command));
 				command.CommandText = querySql;
 
-				try
-				{
-					using var reader = await command.ExecuteReaderAsync();
-					var classMapProperties = _classMap.Properties.ToDictionary(p => p.PropertyName);
-					var lookup = new DataReaderLookup(reader, classMapProperties);
+				using var reader = await command.ExecuteReaderAsync();
+				var classMapProperties = _classMap.Properties.ToDictionary(p => p.PropertyName);
+				var lookup = new DataReaderLookup(reader, classMapProperties);
 
-					while (reader.Read())
-					{
-						var instance = (T)_activator.CreateInstance(lookup);
-						results.Add(instance);
-					}
-				}
-				catch (Exception exception)
-				{
-					throw new InvalidOperationException($"Could not execute SQL {querySql}", exception);
-				}
+				while (reader.Read())
+					results.Add((T)_activator.CreateInstance(lookup));
+
+				return results;
+			});
+		}
+
+		public async Task<List<T>> LoadAsync(Expression<Func<T, bool>> predicate)
+		{
+			return await Process(null, async (connection, txn) => {
+				var results = new List<T>();
+				using var command = connection.CreateCommand();
+				command.Transaction = txn;
+				command.CommandTimeout = _settings.CommandTimeoutSeconds;
+				command.CommandType = CommandType.Text;
+				var criteria = WhereBuilder.ToSql(predicate);
+				var querySql = _schemaManager.GetQuery(criteria.Sql);
+				var parameters = criteria.GetParameters();
+				parameters.ForEach(parameter => parameter.AddTo(command));
+				command.CommandText = querySql;
+
+				using var reader = await command.ExecuteReaderAsync();
+				var classMapProperties = _classMap.Properties.ToDictionary(p => p.PropertyName);
+				var lookup = new DataReaderLookup(reader, classMapProperties);
+
+				while (reader.Read())
+					results.Add((T)_activator.CreateInstance(lookup));
+
 				return results;
 			});
 		}
@@ -179,12 +187,12 @@ namespace Debaser
 		/// </summary>
 		/// <param name="models">Models to upsert into database</param>
 		/// <param name="transaction">Transaction</param>
-		public Task Modify(IEnumerable<T> models, SqlTransaction transaction = null)
+		public async ValueTask<int> Modify(IEnumerable<T> models, SqlTransaction transaction = null)
 		{
-			if (models == null)
-				throw new ArgumentNullException(nameof(models));
+			if (models == null || !models.Any())
+				return 0;
 
-			return Process(transaction, async (connection, txn) => {
+			return await Process(transaction, async (connection, txn) => {
 				using var command = connection.CreateCommand();
 				command.Transaction = txn;
 				command.CommandTimeout = _settings.CommandTimeoutSeconds;
@@ -203,7 +211,6 @@ namespace Debaser
 		{
 			var sqlMetaData = _classMap.GetSqlMetaData();
 			var reusableRecord = new SqlDataRecord(sqlMetaData);
-			var didYieldRows = false;
 
 			foreach (var row in rows)
 			{
@@ -220,14 +227,6 @@ namespace Debaser
 				}
 
 				yield return reusableRecord;
-
-				didYieldRows = true;
-			}
-
-			// sorry - but we need to handle this somehow, and we don't know that the sequence was empty until we have tried to run it through
-			if (!didYieldRows)
-			{
-				throw new EmptySequenceException();
 			}
 		}
 

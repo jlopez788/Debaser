@@ -21,10 +21,9 @@ namespace Debaser.Tests.Bugs
 		[Test]
 		public async Task CanWriteDoublesAndFloats()
 		{
-			await _upserter.Modify(new[]
-			{
-				new BricData {CellId = "hg03jg93", GnsHstIndk2010 = 24, GnsPersIndkHigh2010 = 3435}
-			});
+			var rowCount = await _upserter.Modify(new[] { new BricData { CellId = "hg03jg93", GnsHstIndk2010 = 24, GnsPersIndkHigh2010 = 3435 } });
+
+			Assert.AreEqual(1, rowCount);
 		}
 
 		protected override void SetUp()

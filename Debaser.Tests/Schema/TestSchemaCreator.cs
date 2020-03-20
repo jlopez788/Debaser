@@ -1,7 +1,7 @@
-﻿using Debaser.Internals.Schema;
+﻿using System.Linq;
+using Debaser.Internals.Schema;
 using Debaser.Mapping;
 using NUnit.Framework;
-using System.Linq;
 
 namespace Debaser.Tests.Schema
 {
@@ -22,7 +22,7 @@ namespace Debaser.Tests.Schema
 			creator.CreateSchema(true, true, true);
 		}
 
-		private class SomeClass
+		public class SomeClass
 		{
 			public int Id { get; set; }
 			public string Text { get; set; }

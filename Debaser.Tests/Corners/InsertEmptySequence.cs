@@ -1,6 +1,6 @@
-﻿using NUnit.Framework;
-using System.Linq;
+﻿using System.Linq;
 using System.Threading.Tasks;
+using NUnit.Framework;
 
 namespace Debaser.Tests.Corners
 {
@@ -19,7 +19,9 @@ namespace Debaser.Tests.Corners
 		[Test]
 		public async Task DoesNotDieWhenUpsertingEmptySequence()
 		{
-			await _upserter.Modify(Enumerable.Empty<MinimalRow>());
+			var rowCount = await _upserter.Modify(Enumerable.Empty<MinimalRow>());
+
+			Assert.AreEqual(0, rowCount);
 		}
 
 		[Test]

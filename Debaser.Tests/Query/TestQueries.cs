@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using NUnit.Framework;
 
@@ -15,6 +16,27 @@ namespace Debaser.Tests.Query
 
 			_upsertHelper.DropSchema(dropTable: true, dropProcedure: true, dropType: true);
 			_upsertHelper.CreateSchema();
+		}
+
+		[Test]
+		public async Task QueryExpression()
+		{
+			var rows = new[]
+			   {
+				new RowWithData(1, "number1"),
+				new RowWithData(2, "number2"),
+				new RowWithData(3, "number3"),
+				new RowWithData(4, "number4"),
+				new RowWithData(5, "number5"),
+			};
+
+			var rowCount = await _upsertHelper.Modify(rows);
+			Assert.AreEqual(5, rowCount);
+
+			var array = new List<string> { "number1", "number2" };
+			var data = await _upsertHelper.LoadAsync(r => r.Id == 3 || array.Contains(r.Data));
+
+			Assert.AreEqual(3, data.Count);
 		}
 
 		[Test]
